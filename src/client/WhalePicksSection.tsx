@@ -10,6 +10,7 @@ import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { fetchStoreData } from './store-data.ts'
 import type { PluginEntry, Registry, Suit, SuitsRegistry } from './store-data.ts'
 import { radarSvg } from './radar.ts'
+import { WhaleIcon } from './whale-icon.tsx'
 import type { StoreKey } from './locales.ts'
 
 type Props = PropsLocale<StoreKey> & { close?: () => void }
@@ -21,6 +22,7 @@ const TIER_KEY = { featured: 'featured', listed: 'listed', candidate: 'candidate
 const styles: Record<string, React.CSSProperties> = {
   root: { display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0' },
   header: { display: 'flex', flexDirection: 'column', gap: 2 },
+  brandRow: { display: 'flex', alignItems: 'center', gap: 8 },
   subtitle: { fontSize: 12, opacity: 0.7 },
   tabs: { display: 'flex', gap: 8 },
   tab: { padding: '6px 12px', borderRadius: 6, border: '1px solid var(--dsw-alias-border, #333c4f)', background: 'transparent', color: 'inherit', cursor: 'pointer', fontSize: 13 },
@@ -167,11 +169,14 @@ function WhalePicksBody({ t }: { t: T }): JSX.Element {
   return (
     <div style={styles.root}>
       <div style={styles.header}>
+        <div style={styles.brandRow}>
+          <WhaleIcon size={20} />
+          <div style={styles.subtitle}>{t('subtitle')}</div>
+        </div>
         <div style={styles.tabs}>
           <button style={{ ...styles.tab, ...(tab === 'suits' ? styles.tabActive : {}) }} onClick={() => setTab('suits')}>{t('tabSuits')}</button>
           <button style={{ ...styles.tab, ...(tab === 'plugins' ? styles.tabActive : {}) }} onClick={() => setTab('plugins')}>{t('tabPlugins')}</button>
         </div>
-        <div style={styles.subtitle}>{t('subtitle')}</div>
       </div>
       {tab === 'suits' ? (
         suits.length ? (

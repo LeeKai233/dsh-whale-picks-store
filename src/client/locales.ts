@@ -23,7 +23,7 @@ export interface StoreKey {
 }
 
 export const zh: StoreKey = {
-  nav: '鲸选',
+  nav: '🐳 鲸选',
   subtitle: '敢装，值得装 —— 有品味的 DSH 精品商店',
   tabSuits: '🐳 套件',
   tabPlugins: '插件',
@@ -46,7 +46,7 @@ export const zh: StoreKey = {
 }
 
 export const en: StoreKey = {
-  nav: 'Whale Picks',
+  nav: '🐳 Whale Picks',
   subtitle: 'Install with confidence — the boutique store for DSH plugins',
   tabSuits: '🐳 Suits',
   tabPlugins: 'Plugins',

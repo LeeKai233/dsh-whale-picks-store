@@ -1,0 +1,10 @@
+# dsh-whale-picks-store bundle patch: inserts the whale-picks store section
+# into the web profile's client roster. Applied automatically once the package
+# joins the profile's bundle list (dsh plugin --profile web add dsh-whale-picks-store).
+#
+# WARNING: never add the same "whale-picks-store" insert row to the user profile
+# patch too - insert rows are not deduplicated by id across layers and the loader
+# refuses to boot with "duplicate loader entry id: whale-picks-store".
+- insert:
+    - id: whale-picks-store
+      name: "dsh-whale-picks-store"

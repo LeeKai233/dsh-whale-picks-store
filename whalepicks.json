@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "1.0",
+  "id": "dsh-whale-picks-store",
+  "name": "dsh-whale-picks-store",
+  "version": "0.1.0",
+  "description": {
+    "zh": "鲸选商店入口：在 DSH 设置侧栏「Agent 预设」下方加入鲸选，浏览套件与精选插件、六轴雷达与体检结论，一键复制安装命令",
+    "en": "The whale-picks store entry: a 鲸选 section right below Agent Presets in DSH settings, browsing suits and curated plugins with six-axis radars and copyable install commands"
+  },
+  "category": "discovery",
+  "keywords": [
+    "dsh",
+    "whale-picks",
+    "store",
+    "discovery"
+  ],
+  "scope": {
+    "does": [
+      "在 DSH 设置中展示鲸选货架（套件 + 插件）：读取鲸选 registry，渲染卡片、六轴雷达、体检结论与安装命令"
+    ],
+    "doesNot": [
+      "不在 DSH 内执行安装/卸载（只复制命令；安装走 dsh plugin add，避免与 dsh-market 竞争）",
+      "不修改任何其他插件的设置或行为",
+      "不收集、不上传任何本地数据（只读远端 registry）"
+    ]
+  },
+  "install": {
+    "profile": "web",
+    "spec": "dsh-whale-picks-store"
+  },
+  "runtime": {
+    "platforms": [
+      "web"
+    ],
+    "dsh": ">=0.1.0-rc.6 <0.2.0"
+  },
+  "patches": {
+    "bundle": "cordis.patch.yml",
+    "insertIds": [
+      "whale-picks-store"
+    ],
+    "namespaces": [],
+    "slots": [
+      "settings.section"
+    ]
+  },
+  "capabilities": {
+    "network": true,
+    "telemetry": false,
+    "permissions": []
+  },
+  "cost": {
+    "license": "MIT",
+    "paid": false,
+    "paidTiers": []
+  },
+  "links": {
+    "repo": "https://github.com/LeeKai233/dsh-whale-picks-store",
+    "npm": "https://www.npmjs.com/package/dsh-whale-picks-store"
+  },
+  "maintainers": [
+    {
+      "name": "LeeKai233",
+      "contact": "https://github.com/LeeKai233"
+    }
+  ]
+}

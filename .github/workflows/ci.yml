@@ -22,7 +22,7 @@ jobs:
       - name: whale-picks spec gate
         run: |
           git clone --depth 1 https://github.com/LeeKai233/dsh-whale-picks.git /tmp/whale-picks
-          cd /tmp/whale-picks && npm install --no-audit --no-fund
-          node /tmp/whale-picks/scripts/check-plugin.mjs .
+          (cd /tmp/whale-picks && npm install --no-audit --no-fund)
+          node /tmp/whale-picks/scripts/check-plugin.mjs "$GITHUB_WORKSPACE"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

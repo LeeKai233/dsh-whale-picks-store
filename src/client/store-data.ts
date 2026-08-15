@@ -65,7 +65,7 @@ export interface SuitsRegistry {
 }
 
 /** Deploy docs: docs/cloudflare.md in the whale-picks repo. */
-const CF_BASE = ''
+const CF_BASE = 'https://whale-picks-api.whalepicks.workers.dev'
 const GITHUB_BASE = 'https://raw.githubusercontent.com/LeeKai233/dsh-whale-picks/main/data'
 
 async function getJson<T>(base: string, file: string): Promise<T> {

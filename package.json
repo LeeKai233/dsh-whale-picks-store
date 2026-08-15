@@ -43,20 +43,20 @@
     "@deepseek-ai/cordis": "^4.0.1",
     "react": "^18.2.0"
   },
-  "dependencies": {},
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
     "@deepseek-ai/dsh-client-locale": "^0.1.0-rc.6",
     "@deepseek-ai/dsh-client-runtime": "^0.1.0-rc.6",
     "@deepseek-ai/dsh-client-ui-slots": "^0.1.0-rc.6",
+    "@testing-library/react": "^16.3.2",
     "@types/react": "~18.3.1",
     "@types/react-dom": "~18.3.0",
+    "jsdom": "^30.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tsdown": "^0.22.14",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.10",
-    "jsdom": "^30.0.1"
+    "vitest": "^4.1.10"
   },
   "files": [
     "lib",

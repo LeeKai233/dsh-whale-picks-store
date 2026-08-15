@@ -4,7 +4,8 @@
  * six-axis radar, pass findings, gate status and copyable install commands.
  * Read-only: installation stays `dsh plugin add` (see whalepicks.json scope).
  */
-import { useCallback, useEffect, useState } from 'react'
+import { Component, useCallback, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { fetchStoreData } from './store-data.ts'
 import type { PluginEntry, Registry, Suit, SuitsRegistry } from './store-data.ts'
@@ -108,8 +109,32 @@ function SuitCard({ s, t }: { s: Suit; t: T }): JSX.Element {
   )
 }
 
+/** Last line of defense: render errors must be visible, never a blank shelf. */
+class SectionBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
+  state = { error: null as string | null }
+
+  static getDerivedStateFromError(err: unknown): { error: string } {
+    return { error: err instanceof Error ? err.message : String(err) }
+  }
+
+  render(): ReactNode {
+    if (this.state.error) {
+      return <div style={{ padding: 12, fontSize: 12.5, color: '#ff7a7a' }}>⚠️ {this.state.error}</div>
+    }
+    return this.props.children
+  }
+}
+
 export function WhalePicksSection(props: Props): JSX.Element {
-  const t = props.locale
+  const t = props.t
+  return (
+    <SectionBoundary>
+      <WhalePicksBody t={t} />
+    </SectionBoundary>
+  )
+}
+
+function WhalePicksBody({ t }: { t: T }): JSX.Element {
   const [tab, setTab] = useState<'suits' | 'plugins'>('suits')
   const [data, setData] = useState<{ plugins: Registry | null; suits: SuitsRegistry | null }>({ plugins: null, suits: null })
   const [loading, setLoading] = useState(true)

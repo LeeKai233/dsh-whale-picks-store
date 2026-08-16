@@ -22,6 +22,10 @@ export interface StoreKey {
   repo: string
   gatePass: string
   gateFail: string
+  /** Titled-box heading over the nine-axis meter chart. */
+  chartTitle: string
+  /** Titled-box heading over the ASCII whale banner. */
+  bannerTitle: string
   founderScore: string
   axisProducibility: string
   axisAdoptability: string
@@ -36,8 +40,10 @@ export interface StoreKey {
 }
 
 /**
- * Legend label keys in radar chart order — index i is the label of
- * AXIS_KEYS[i] (ascii-radar.ts). The order contract is locked by a test.
+ * Legend label keys in meter-chart order — index i is the label of
+ * AXIS_KEYS[i] (ascii-bars.ts). The order contract is locked by a test.
+ * Labels must stay within 4 display columns (zh: two characters; en: four
+ * letters) or the two-column box breaks — also locked by a test.
  */
 export const AXIS_LABEL_KEYS = [
   'axisProducibility', 'axisAdoptability', 'axisBaseline', 'axisDistribution',
@@ -66,6 +72,8 @@ export const zh: StoreKey = {
   repo: '仓库',
   gatePass: '规范门槛 PASS',
   gateFail: '规范门槛 FAIL（待补 whalepicks.json）',
+  chartTitle: '九维兑现度',
+  bannerTitle: 'WHALE PICKS',
   founderScore: '创始人评分',
   axisProducibility: '生产',
   axisAdoptability: '迁移',
@@ -101,15 +109,17 @@ export const en: StoreKey = {
   repo: 'Repo',
   gatePass: 'spec gate PASS',
   gateFail: 'spec gate FAIL (whalepicks.json pending)',
+  chartTitle: 'Nine-goal delivery',
+  bannerTitle: 'WHALE PICKS',
   founderScore: 'Founder score',
   axisProducibility: 'Prod',
-  axisAdoptability: 'Adopt',
+  axisAdoptability: 'Adop',
   axisBaseline: 'Base',
   axisDistribution: 'Dist',
   axisComposition: 'Comp',
   axisSafety: 'Safe',
   axisFootprint: 'Foot',
-  axisFreshness: 'Fresh',
+  axisFreshness: 'Fres',
   axisRemedy: 'Rem',
   dataSource: 'Data: whale-picks registry (cached 10 min)',
 }

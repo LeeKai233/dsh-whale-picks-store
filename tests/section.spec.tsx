@@ -60,7 +60,7 @@ describe('WhalePicksSection', () => {
     expect(screen.getByText('dsh plugin --profile web add dsh-ui-attention')).toBeTruthy()
   })
 
-  it('shows the Braille radar, tier badges, founder score and notes as pure text', async () => {
+  it('shows the meter box, tier badges, founder score meter and notes as pure text', async () => {
     vi.stubGlobal('fetch', vi.fn(async (url: string) => {
       const body = String(url).includes('suits.json') ? suits : registry
       return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })
@@ -68,18 +68,24 @@ describe('WhalePicksSection', () => {
     const { container } = render(<WhalePicksSection t={t} />)
     fireEvent.click(await screen.findByText(zh.tabPlugins))
     expect(await screen.findByText('dsh-ui-attention')).toBeTruthy()
-    // Braille radar in a <pre>, legend included; ASCII whale banner is a <pre> too
+    // meter box and ASCII whale banner both render as <pre> blocks
     const pres = container.querySelectorAll('pre')
     expect(pres.length).toBeGreaterThanOrEqual(2)
-    expect(container.textContent).toContain('生产 [#####] 5')
-    expect(container.textContent).toContain('救济 [-----] --')
-    // founder badge + notes (radar-bearing card only; the candidate card has none)
-    expect(screen.getByText(zh.founderScore + ' 5/5')).toBeTruthy()
-    expect(screen.getByText('创始人手记：每天在用。')).toBeTruthy()
+    // titled box: heading, borders, meters, null axis as dashes
+    expect(container.textContent).toContain(zh.chartTitle)
+    expect(container.textContent).toContain('╭')
+    expect(container.textContent).toContain('╰')
+    expect(container.textContent).toContain('生产 ▕██████████▏ 5/5')
+    expect(container.textContent).toContain('救济 ▕──────────▏ --')
+    // founder meter row outside the box + notes behind the ▸ marker
+    expect(container.textContent).toContain('创始人评分 ▕██████████▏ 5/5')
+    expect(container.textContent).toContain('▸ 创始人手记：每天在用。')
+    // ┄ thin separator above the founder block
+    expect(container.textContent).toContain('┄'.repeat(48))
     // text badges and stars copy replaced the old emoji
     expect(screen.getByText(zh.featured).textContent).toContain('[FEATURED]')
     expect(screen.getByText(/stars 1/)).toBeTruthy()
-    // no emoji anywhere in the rendered section (Braille dots are not emoji)
+    // no emoji anywhere in the rendered section (box-drawing glyphs are not emoji)
     expect(EMOJI_RE.test(container.textContent ?? '')).toBe(false)
   })
 
@@ -89,11 +95,12 @@ describe('WhalePicksSection', () => {
       return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })
     }))
     const tEn = (key: StoreKey): string => en[key]
-    render(<WhalePicksSection t={tEn} />)
+    const { container } = render(<WhalePicksSection t={tEn} />)
     fireEvent.click(await screen.findByText(en.tabPlugins))
     expect(await screen.findByText('dsh-ui-attention')).toBeTruthy()
-    expect(screen.getByText(en.founderScore + ' 5/5')).toBeTruthy()
-    expect(screen.getByText('Founder note: daily driver.')).toBeTruthy()
+    expect(container.textContent).toContain(en.chartTitle)
+    expect(container.textContent).toContain('Founder score ▕██████████▏ 5/5')
+    expect(container.textContent).toContain('▸ Founder note: daily driver.')
     expect(screen.getByText(en.featured).textContent).toContain('[FEATURED]')
   })
 

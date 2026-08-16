@@ -1,8 +1,9 @@
 /**
  * The whale-picks settings section: the store shelves inside DSH.
  * Two tabs — suits and plugins (featured / listed / candidates) — with a
- * nine-axis Braille ASCII radar, founder score and notes, pass findings,
- * gate status and copyable install commands. Pure text UI, no emoji.
+ * nine-axis ASCII meter chart in a titled box (btop flavor), founder score
+ * meter and notes, pass findings, gate status and copyable install commands.
+ * Pure text UI, no emoji.
  * Read-only: installation stays `dsh plugin add` (see whalepicks.json scope).
  */
 import { Component, useCallback, useEffect, useState } from 'react'
@@ -10,7 +11,8 @@ import type { ReactNode } from 'react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { fetchStoreData } from './store-data.ts'
 import type { PluginEntry, Registry, Suit, SuitsRegistry } from './store-data.ts'
-import { radarAscii } from './ascii-radar.ts'
+import { barsModel, meterRow, titledBox } from './ascii-bars.ts'
+import type { BarsSegment } from './ascii-bars.ts'
 import { AXIS_LABEL_KEYS } from './locales.ts'
 import type { StoreKey } from './locales.ts'
 
@@ -20,15 +22,15 @@ type T = (key: StoreKey) => string
 const TIER_ORDER: PluginEntry['tier'][] = ['featured', 'listed', 'candidate']
 const TIER_KEY = { featured: 'featured', listed: 'listed', candidate: 'candidates' } as const
 
-/** Classic ASCII whale — the terminal-style brand banner replacing the SVG glyph. */
-const WHALE_BANNER = [
+/** Classic ASCII whale — the terminal-style brand banner, framed by titledBox. */
+const WHALE_ART = [
   '      .',
   '     ":"',
   '   ___:____     |"\\/"|',
   " ,'        `.    \\  /",
   ' |  O        \\___/  |',
   '~^~^~^~^~^~^~^~^~^~^~^~^~',
-].join('\n')
+]
 
 const styles: Record<string, React.CSSProperties> = {
   root: { display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0' },
@@ -46,13 +48,14 @@ const styles: Record<string, React.CSSProperties> = {
   name: { fontWeight: 600, fontSize: 14, textDecoration: 'none' },
   meta: { fontSize: 11, opacity: 0.65, whiteSpace: 'nowrap' },
   desc: { fontSize: 12.5, opacity: 0.9, lineHeight: 1.5 },
-  radarRow: { display: 'flex', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap' },
-  // Braille cells only align at lineHeight 1 — anything else scatters the dots.
-  radarPre: { flexShrink: 0, margin: 0, fontFamily: 'monospace', fontSize: 11, lineHeight: 1, color: 'inherit', overflowX: 'auto' },
+  chartRow: { display: 'flex', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap' },
+  // Box-drawing glyphs only align in monospace at lineHeight 1.
+  monoPre: { flexShrink: 0, margin: 0, fontFamily: 'monospace', fontSize: 11, lineHeight: 1, color: 'inherit', overflowX: 'auto' },
+  track: { opacity: 0.35 },
+  rule: { margin: 0, fontFamily: 'monospace', fontSize: 11, lineHeight: 1, opacity: 0.5, whiteSpace: 'pre', overflow: 'hidden' },
   side: { display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, opacity: 0.8 },
   warn: { color: '#FFB900' },
   founder: { display: 'flex', flexDirection: 'column', gap: 4 },
-  founderScore: { fontSize: 12, fontWeight: 600 },
   notes: { fontSize: 11.5, opacity: 0.85, lineHeight: 1.5, whiteSpace: 'pre-wrap' },
   installRow: { display: 'flex', alignItems: 'center', gap: 8 },
   code: { flex: 1, fontSize: 11, fontFamily: 'monospace', padding: '4px 8px', borderRadius: 4, background: 'rgba(127,140,160,0.12)', overflowWrap: 'anywhere' },
@@ -60,6 +63,19 @@ const styles: Record<string, React.CSSProperties> = {
   empty: { fontSize: 12.5, opacity: 0.7, lineHeight: 1.6 },
   error: { fontSize: 12.5, color: '#ff7a7a', display: 'flex', alignItems: 'center', gap: 8 },
   footer: { fontSize: 10.5, opacity: 0.5 },
+}
+
+/** Segment renderer: gradient fills get their meter color, tracks stay muted. */
+function Segments({ segs }: { segs: BarsSegment[] }): JSX.Element {
+  return (
+    <>
+      {segs.map((s, i) => s.kind === 'fill'
+        ? <span key={i} style={{ color: s.color }}>{s.text}</span>
+        : s.kind === 'track'
+          ? <span key={i} style={styles.track}>{s.text}</span>
+          : <span key={i}>{s.text}</span>)}
+    </>
+  )
 }
 
 function copyText(text: string): boolean {
@@ -82,7 +98,7 @@ function PluginCard({ p, t }: { p: PluginEntry; t: T }): JSX.Element {
   const lang = t('lang') === 'en' ? 'en' : 'zh'
   const desc = (p.description?.zh || p.description?.en || '').slice(0, 220)
   const flags = p.security?.redFlags ?? []
-  const radarText = radarAscii(p.radar, AXIS_LABEL_KEYS.map((k) => t(k)))
+  const chart = barsModel(p.radar, AXIS_LABEL_KEYS.map((k) => t(k)), t('chartTitle'))
   const human = p.radar?.human ?? null
   const notes = p.reviewNotes ? (p.reviewNotes[lang] || p.reviewNotes.zh || p.reviewNotes.en) : ''
   const gate = p.manifestCompliant === true ? t('gatePass') : t('gateFail')
@@ -93,8 +109,12 @@ function PluginCard({ p, t }: { p: PluginEntry; t: T }): JSX.Element {
         <span style={styles.meta}>{t('stars')} {p.stars} · {p.license} · {gate}</span>
       </div>
       <div style={styles.desc}>{desc}</div>
-      <div style={styles.radarRow}>
-        {radarText ? <pre style={styles.radarPre}>{radarText}</pre> : null}
+      <div style={styles.chartRow}>
+        {chart ? (
+          <pre style={styles.monoPre}>{chart.rows.map((row, i) => (
+            <span key={i}><Segments segs={row} />{'\n'}</span>
+          ))}</pre>
+        ) : null}
         <div style={styles.side}>
           {flags.length ? <div style={styles.warn}>[!] {flags.length} {t('flags')}</div> : null}
           {p.tier === 'candidate' ? <div>{t('candidates')}</div> : null}
@@ -102,8 +122,9 @@ function PluginCard({ p, t }: { p: PluginEntry; t: T }): JSX.Element {
       </div>
       {human && human.value != null ? (
         <div style={styles.founder}>
-          <div style={styles.founderScore}>{t('founderScore')} {human.value}/5</div>
-          {notes ? <div style={styles.notes}>{notes}</div> : null}
+          <div style={styles.rule} aria-hidden="true">{'┄'.repeat(48)}</div>
+          <pre style={styles.monoPre}><Segments segs={meterRow(t('founderScore'), human.value)} /></pre>
+          {notes ? <div style={styles.notes}>{'▸ '}{notes}</div> : null}
         </div>
       ) : null}
       {p.install ? (
@@ -195,7 +216,7 @@ function WhalePicksBody({ t }: { t: T }): JSX.Element {
     <div style={styles.root}>
       <div style={styles.header}>
         <div style={styles.brandRow}>
-          <pre style={styles.banner} aria-hidden="true">{WHALE_BANNER}</pre>
+          <pre style={styles.banner} aria-hidden="true">{titledBox(WHALE_ART, t('bannerTitle'))}</pre>
           <div style={styles.subtitle}>{t('subtitle')}</div>
         </div>
         <div style={styles.tabs}>

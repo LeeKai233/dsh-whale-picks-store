@@ -1,11 +1,11 @@
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "1.1",
   "id": "dsh-whale-picks-store",
   "name": "dsh-whale-picks-store",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": {
-    "zh": "鲸选商店入口：在 DSH 设置侧栏「Agent 预设」下方加入鲸选，浏览套件与精选插件、六轴雷达与体检结论，一键复制安装命令",
-    "en": "The whale-picks store entry: a 鲸选 section right below Agent Presets in DSH settings, browsing suits and curated plugins with six-axis radars and copyable install commands"
+    "zh": "鲸选商店入口：在 DSH 设置侧栏「Agent 预设」下方加入鲸选，浏览套件与精选插件、九轴 Braille ASCII 雷达、创始人评分与体检结论，一键复制安装命令",
+    "en": "The whale-picks store entry: a 鲸选 section right below Agent Presets in DSH settings, browsing suits and curated plugins with nine-axis Braille ASCII radars, founder scores and copyable install commands"
   },
   "category": "discovery",
   "keywords": [
@@ -16,7 +16,7 @@
   ],
   "scope": {
     "does": [
-      "在 DSH 设置中展示鲸选货架（套件 + 插件）：读取鲸选 registry，渲染卡片、六轴雷达、体检结论与安装命令"
+      "在 DSH 设置中展示鲸选货架（套件 + 插件）：读取鲸选 registry，渲染卡片、九轴 Braille ASCII 雷达、创始人评分与手记、体检结论与安装命令"
     ],
     "doesNot": [
       "不在 DSH 内执行安装/卸载（只复制命令；安装走 dsh plugin add，避免与 dsh-market 竞争）",

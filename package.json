@@ -1,7 +1,7 @@
 {
   "name": "dsh-whale-picks-store",
-  "version": "0.1.0",
-  "description": "鲸选商店插件：DSH 设置中「Agent 预设」下方的鲸选入口——套件与插件货架、六轴雷达、一键复制安装命令",
+  "version": "0.2.0",
+  "description": "鲸选商店插件：DSH 设置中「Agent 预设」下方的鲸选入口——套件与插件货架、九轴 Braille ASCII 雷达、创始人评分、一键复制安装命令",
   "keywords": [
     "dsh",
     "deepseek-harness",

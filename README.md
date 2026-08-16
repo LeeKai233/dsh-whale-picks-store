@@ -2,7 +2,7 @@
 
 [中文](README.zh.md) | English
 
-The 鲸选 store entry inside DSH: a settings section right below Agent Presets that shows the whale-picks shelves — suits and curated plugins with six-axis radars, pass findings and one-click-copy install commands.
+The 鲸选 store entry inside DSH: a settings section right below Agent Presets that shows the whale-picks shelves — suits and curated plugins with nine-axis Braille ASCII radars, founder scores and notes, pass findings and one-click-copy install commands. Pure text UI, no emoji.
 
 A whale-picks compliant DSH plugin — see [whalepicks.json](./whalepicks.json) and the [whale-picks SPEC](https://github.com/LeeKai233/dsh-whale-picks/blob/main/spec/SPEC.md).
 
@@ -25,7 +25,7 @@ Then open Settings: the 鲸选 entry sits right below Agent Presets.
 ## What it does
 
 - Renders the whale-picks registry (suits + plugins) as store shelves: featured / listed / candidates
-- Six-axis radar per listed plugin, machine-pass findings and spec-gate status
+- Nine-axis Braille ASCII radar per listed plugin (the nine machine goals), founder score and review notes, machine-pass findings and spec-gate status
 - One-click copy of the exact install command
 
 ## What it does NOT do

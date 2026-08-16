@@ -12,13 +12,22 @@ export interface HumanAxis extends RadarAxis {
   source: 'founder' | 'community' | 'both'
   count: number
 }
+/**
+ * Ten keys exactly: the nine machine axes of the paradigm goals (charted by
+ * the Braille radar, in AXIS_KEYS order) plus the founder's human score,
+ * which the card shows as its own badge instead of a chart axis.
+ */
 export interface Radar {
+  producibility: RadarAxis
+  adoptability: RadarAxis
+  baseline: RadarAxis
+  distribution: RadarAxis
+  composition: RadarAxis
+  safety: RadarAxis
+  footprint: RadarAxis
+  freshness: RadarAxis
+  remedy: RadarAxis
   human: HumanAxis
-  security: RadarAxis
-  compatibility: RadarAxis
-  scope: RadarAxis
-  cost: RadarAxis
-  activity: RadarAxis
 }
 export interface Bilingual { zh: string; en: string }
 export interface PluginEntry {

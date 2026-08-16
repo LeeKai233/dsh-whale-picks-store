@@ -11,8 +11,8 @@ import type { ReactNode } from 'react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { fetchStoreData } from './store-data.ts'
 import type { PluginEntry, Registry, Suit, SuitsRegistry } from './store-data.ts'
-import { barsModel, meterRow, titledBox } from './ascii-bars.ts'
-import type { BarsSegment } from './ascii-bars.ts'
+import { barsModel, BOX_WIDTH, meterRow, titledBox } from './ascii-bars.ts'
+import type { BarsModel, BarsSegment } from './ascii-bars.ts'
 import { AXIS_LABEL_KEYS } from './locales.ts'
 import type { StoreKey } from './locales.ts'
 
@@ -32,11 +32,14 @@ const WHALE_ART = [
   '~^~^~^~^~^~^~^~^~^~^~^~^~',
 ]
 
+// Meter/box glyphs only align in a CJK-aware monospace at lineHeight 1.
+const MONO_STACK = '"Noto Sans Mono CJK SC","Sarasa Mono SC","Noto Sans Mono",monospace'
+
 const styles: Record<string, React.CSSProperties> = {
   root: { display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0' },
   header: { display: 'flex', flexDirection: 'column', gap: 2 },
   brandRow: { display: 'flex', alignItems: 'center', gap: 8 },
-  banner: { margin: 0, fontFamily: 'monospace', fontSize: 10, lineHeight: 1, color: 'inherit', opacity: 0.9 },
+  banner: { margin: 0, fontFamily: MONO_STACK, fontSize: 10, lineHeight: 1, color: 'inherit', opacity: 0.9 },
   subtitle: { fontSize: 12, opacity: 0.7 },
   tabs: { display: 'flex', gap: 8 },
   tab: { padding: '6px 12px', borderRadius: 6, border: '1px solid var(--dsw-alias-border, #333c4f)', background: 'transparent', color: 'inherit', cursor: 'pointer', fontSize: 13 },
@@ -49,10 +52,13 @@ const styles: Record<string, React.CSSProperties> = {
   meta: { fontSize: 11, opacity: 0.65, whiteSpace: 'nowrap' },
   desc: { fontSize: 12.5, opacity: 0.9, lineHeight: 1.5 },
   chartRow: { display: 'flex', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap' },
-  // Box-drawing glyphs only align in monospace at lineHeight 1.
-  monoPre: { flexShrink: 0, margin: 0, fontFamily: 'monospace', fontSize: 11, lineHeight: 1, color: 'inherit', overflowX: 'auto' },
+  monoPre: { flexShrink: 0, margin: 0, fontFamily: MONO_STACK, fontSize: 11, lineHeight: 1, color: 'inherit', overflowX: 'auto' },
+  flexRow: { display: 'flex' },
+  // ch width lock: the browser reserves exactly <cols>ch per segment, so
+  // fallback-font metric drift stays inside the span and never pushes boxes.
+  seg: { flex: 'none', overflow: 'hidden' },
   track: { opacity: 0.35 },
-  rule: { margin: 0, fontFamily: 'monospace', fontSize: 11, lineHeight: 1, opacity: 0.5, whiteSpace: 'pre', overflow: 'hidden' },
+  rule: { margin: 0, fontFamily: MONO_STACK, fontSize: 11, lineHeight: 1, opacity: 0.5, whiteSpace: 'pre', overflow: 'hidden', width: BOX_WIDTH + 'ch' },
   side: { display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, opacity: 0.8 },
   warn: { color: '#FFB900' },
   founder: { display: 'flex', flexDirection: 'column', gap: 4 },
@@ -69,12 +75,24 @@ const styles: Record<string, React.CSSProperties> = {
 function Segments({ segs }: { segs: BarsSegment[] }): JSX.Element {
   return (
     <>
-      {segs.map((s, i) => s.kind === 'fill'
-        ? <span key={i} style={{ color: s.color }}>{s.text}</span>
-        : s.kind === 'track'
-          ? <span key={i} style={styles.track}>{s.text}</span>
-          : <span key={i}>{s.text}</span>)}
+      {segs.map((s, i) => {
+        const style: React.CSSProperties = s.kind === 'fill'
+          ? { ...styles.seg, color: s.color, width: s.cols + 'ch' }
+          : s.kind === 'track'
+            ? { ...styles.seg, ...styles.track, width: s.cols + 'ch' }
+            : { ...styles.seg, width: s.cols + 'ch' }
+        return <span key={i} style={style}>{s.text}</span>
+      })}
     </>
+  )
+}
+
+/** Segment-grid view: one locked flex row per model row. */
+function ModelView({ model, style, ariaHidden }: { model: BarsModel; style?: React.CSSProperties; ariaHidden?: boolean }): JSX.Element {
+  return (
+    <pre style={style ?? styles.monoPre} aria-hidden={ariaHidden ? 'true' : undefined}>
+      {model.rows.map((row, i) => <div key={i} style={styles.flexRow}><Segments segs={row} /></div>)}
+    </pre>
   )
 }
 
@@ -110,11 +128,7 @@ function PluginCard({ p, t }: { p: PluginEntry; t: T }): JSX.Element {
       </div>
       <div style={styles.desc}>{desc}</div>
       <div style={styles.chartRow}>
-        {chart ? (
-          <pre style={styles.monoPre}>{chart.rows.map((row, i) => (
-            <span key={i}><Segments segs={row} />{'\n'}</span>
-          ))}</pre>
-        ) : null}
+        {chart ? <ModelView model={chart} /> : null}
         <div style={styles.side}>
           {flags.length ? <div style={styles.warn}>[!] {flags.length} {t('flags')}</div> : null}
           {p.tier === 'candidate' ? <div>{t('candidates')}</div> : null}
@@ -122,9 +136,9 @@ function PluginCard({ p, t }: { p: PluginEntry; t: T }): JSX.Element {
       </div>
       {human && human.value != null ? (
         <div style={styles.founder}>
-          <div style={styles.rule} aria-hidden="true">{'┄'.repeat(48)}</div>
-          <pre style={styles.monoPre}><Segments segs={meterRow(t('founderScore'), human.value)} /></pre>
-          {notes ? <div style={styles.notes}>{'▸ '}{notes}</div> : null}
+          <div style={styles.rule} aria-hidden="true">{'─'.repeat(BOX_WIDTH)}</div>
+          <ModelView model={{ rows: [meterRow(t('founderScore'), human.value)] }} />
+          {notes ? <div style={styles.notes}>{'> '}{notes}</div> : null}
         </div>
       ) : null}
       {p.install ? (
@@ -216,7 +230,7 @@ function WhalePicksBody({ t }: { t: T }): JSX.Element {
     <div style={styles.root}>
       <div style={styles.header}>
         <div style={styles.brandRow}>
-          <pre style={styles.banner} aria-hidden="true">{titledBox(WHALE_ART, t('bannerTitle'))}</pre>
+          <ModelView model={titledBox(WHALE_ART, t('bannerTitle'))} style={styles.banner} ariaHidden />
           <div style={styles.subtitle}>{t('subtitle')}</div>
         </div>
         <div style={styles.tabs}>

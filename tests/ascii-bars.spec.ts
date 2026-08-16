@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
-  AXIS_KEYS, axisValue, barsModel, flatten, flattenRow, meterRow, textWidth, titledBox,
+  AXIS_KEYS, axisValue, barsModel, BOX_WIDTH, flatten, flattenRow, meterRow, textWidth, titledBox,
 } from '../src/client/ascii-bars.ts'
-import type { BarsSegment } from '../src/client/ascii-bars.ts'
+import type { BarsModel, BarsSegment } from '../src/client/ascii-bars.ts'
 import { AXIS_LABEL_KEYS, en, zh } from '../src/client/locales.ts'
 import type { Radar, RadarAxis } from '../src/client/store-data.ts'
 
@@ -30,6 +30,14 @@ const labels = AXIS_LABEL_KEYS.map((k) => zh[k])
 
 const fillsOf = (segs: readonly BarsSegment[]): string[] =>
   segs.filter((s) => s.kind === 'fill').map((s) => (s as { color: string }).color)
+
+/** The width-lock invariant: segment cols always sum to the line's display width. */
+const expectRowsLocked = (model: BarsModel, width: number): void => {
+  for (const row of model.rows) {
+    expect(row.reduce((n, s) => n + s.cols, 0)).toBe(width)
+    expect(textWidth(flattenRow(row))).toBe(width)
+  }
+}
 
 describe('ascii-bars', () => {
   it('locks the label order onto the chart axis order, labels within 4 columns', () => {
@@ -67,26 +75,35 @@ describe('ascii-bars', () => {
 
   it('distinguishes a null axis (dashes + --) from a zero score (empty track + 0/5)', () => {
     const text = flatten(barsModel(mixed, labels, zh.chartTitle)!)
-    expect(text).toContain('生产 ▕──────────▏ --')
-    expect(text).toContain('分发 ▕░░░░░░░░░░▏ 0/5')
-    expect(text).toContain('迁移 ▕████████░░▏ 4/5')
-    expect(text).toContain('准入 ▕██████░░░░▏ 3/5')
-    expect(text).toContain('救济 ▕████░░░░░░▏ 2/5')
+    expect(text).toContain('生产 ' + '─'.repeat(10) + ' --')
+    expect(text).toContain('分发 ' + '░'.repeat(10) + ' 0/5')
+    expect(text).toContain('迁移 ' + '█'.repeat(8) + '░'.repeat(2) + ' 4/5')
+    expect(text).toContain('准入 ' + '█'.repeat(6) + '░'.repeat(4) + ' 3/5')
+    expect(text).toContain('救济 ' + '█'.repeat(4) + '░'.repeat(6) + ' 2/5')
   })
 
-  it('closes every box line at exactly 48 columns, odd ninth axis bottom-left', () => {
+  it('closes every box line at exactly BOX_WIDTH columns, odd ninth axis bottom-left', () => {
     const lines = flatten(barsModel(full, labels, zh.chartTitle)!).split('\n')
     expect(lines).toHaveLength(7)
-    for (const line of lines) expect(textWidth(line)).toBe(48)
+    for (const line of lines) expect(textWidth(line)).toBe(BOX_WIDTH)
     expect(lines[0]).toMatch(/^╭─ .+ ─+╮$/)
     expect(lines[0]).toContain(zh.chartTitle)
-    expect(lines[6]).toBe('╰' + '─'.repeat(46) + '╯')
+    expect(lines[6]).toBe('╰' + '─'.repeat(BOX_WIDTH - 2) + '╯')
     for (const line of lines.slice(1, 6)) {
       expect(line.startsWith('│ ')).toBe(true)
       expect(line.endsWith(' │')).toBe(true)
     }
     expect(lines[5]).toContain('救济')
     expect(lines[5]).not.toContain('保鲜')
+  })
+
+  it('locks every row: segment cols sum to the box width (ch width-lock invariant)', () => {
+    expectRowsLocked(barsModel(full, labels, zh.chartTitle)!, BOX_WIDTH)
+    expectRowsLocked(barsModel(mixed, labels, zh.chartTitle)!, BOX_WIDTH)
+    expectRowsLocked(barsModel(full, AXIS_LABEL_KEYS.map((k) => en[k]), en.chartTitle)!, BOX_WIDTH)
+    const banner = titledBox(['  .', ' ":"', '~^~^~'], zh.bannerTitle)
+    expectRowsLocked(banner, textWidth(flattenRow(banner.rows[0])))
+    expectRowsLocked({ rows: [meterRow(zh.founderScore, 5)] }, textWidth('创始人评分 ') + 10 + 1 + 3)
   })
 
   it('grades meter colors: 5 blue, 4 cyan, 3 amber, <=2 red, null uncolored', () => {
@@ -101,14 +118,13 @@ describe('ascii-bars', () => {
   })
 
   it('renders the founder score as a standalone meter row outside the box', () => {
-    expect(flattenRow(meterRow(zh.founderScore, 5))).toBe('创始人评分 ▕██████████▏ 5/5')
-    expect(flattenRow(meterRow(en.founderScore, 4))).toBe('Founder score ▕████████░░▏ 4/5')
-    expect(flattenRow(meterRow(zh.founderScore, null))).toBe('创始人评分 ▕──────────▏ -- ')
+    expect(flattenRow(meterRow(zh.founderScore, 5))).toBe('创始人评分 ' + '█'.repeat(10) + ' 5/5')
+    expect(flattenRow(meterRow(en.founderScore, 4))).toBe('Founder score ' + '█'.repeat(8) + '░░ 4/5')
+    expect(flattenRow(meterRow(zh.founderScore, null))).toBe('创始人评分 ' + '─'.repeat(10) + ' -- ')
   })
 
   it('frames the whale banner in a titled box that closes on every line', () => {
-    const art = ['  .', ' ":"', '~^~^~']
-    const boxed = titledBox(art, zh.bannerTitle)
+    const boxed = flatten(titledBox(['  .', ' ":"', '~^~^~'], zh.bannerTitle))
     const lines = boxed.split('\n')
     expect(lines[0]).toContain('WHALE PICKS')
     expect(lines[0].startsWith('╭─ ')).toBe(true)
@@ -126,7 +142,7 @@ describe('ascii-bars', () => {
       flatten(barsModel(full, labels, zh.chartTitle)!),
       flatten(barsModel(mixed, labels, zh.chartTitle)!),
       flattenRow(meterRow(zh.founderScore, 5)),
-      titledBox(['whale'], zh.bannerTitle),
+      flatten(titledBox(['whale'], zh.bannerTitle)),
     ]
     for (const s of samples) expect(EMOJI_RE.test(s)).toBe(false)
   })

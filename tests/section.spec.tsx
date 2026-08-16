@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { WhalePicksSection } from '../src/client/WhalePicksSection.tsx'
+import { BOX_WIDTH } from '../src/client/ascii-bars.ts'
 import { en, zh } from '../src/client/locales.ts'
 import type { StoreKey } from '../src/client/locales.ts'
 import type { Radar, RadarAxis } from '../src/client/store-data.ts'
@@ -71,17 +72,24 @@ describe('WhalePicksSection', () => {
     // meter box and ASCII whale banner both render as <pre> blocks
     const pres = container.querySelectorAll('pre')
     expect(pres.length).toBeGreaterThanOrEqual(2)
-    // titled box: heading, borders, meters, null axis as dashes
+    // titled box: heading, borders, bare meters, null axis as dashes
     expect(container.textContent).toContain(zh.chartTitle)
     expect(container.textContent).toContain('╭')
     expect(container.textContent).toContain('╰')
-    expect(container.textContent).toContain('生产 ▕██████████▏ 5/5')
-    expect(container.textContent).toContain('救济 ▕──────────▏ --')
-    // founder meter row outside the box + notes behind the ▸ marker
-    expect(container.textContent).toContain('创始人评分 ▕██████████▏ 5/5')
-    expect(container.textContent).toContain('▸ 创始人手记：每天在用。')
-    // ┄ thin separator above the founder block
-    expect(container.textContent).toContain('┄'.repeat(48))
+    expect(container.textContent).toContain('生产 ' + '█'.repeat(10) + ' 5/5')
+    expect(container.textContent).toContain('救济 ' + '─'.repeat(10) + ' --')
+    // founder meter row outside the box + notes behind the > marker
+    expect(container.textContent).toContain('创始人评分 ' + '█'.repeat(10) + ' 5/5')
+    expect(container.textContent).toContain('> 创始人手记：每天在用。')
+    // ─ separator (one box width) above the founder block
+    expect(container.textContent).toContain('─'.repeat(BOX_WIDTH))
+    // ch width lock: every rendered segment span reserves its model columns
+    const segSpans = container.querySelectorAll('pre div > span')
+    expect(segSpans.length).toBeGreaterThan(0)
+    for (const span of Array.from(segSpans)) {
+      expect((span as HTMLElement).style.width).toMatch(/^\d+ch$/)
+      expect((span as HTMLElement).style.overflow).toBe('hidden')
+    }
     // text badges and stars copy replaced the old emoji
     expect(screen.getByText(zh.featured).textContent).toContain('[FEATURED]')
     expect(screen.getByText(/stars 1/)).toBeTruthy()
@@ -99,8 +107,8 @@ describe('WhalePicksSection', () => {
     fireEvent.click(await screen.findByText(en.tabPlugins))
     expect(await screen.findByText('dsh-ui-attention')).toBeTruthy()
     expect(container.textContent).toContain(en.chartTitle)
-    expect(container.textContent).toContain('Founder score ▕██████████▏ 5/5')
-    expect(container.textContent).toContain('▸ Founder note: daily driver.')
+    expect(container.textContent).toContain('Founder score ' + '█'.repeat(10) + ' 5/5')
+    expect(container.textContent).toContain('> Founder note: daily driver.')
     expect(screen.getByText(en.featured).textContent).toContain('[FEATURED]')
   })
 

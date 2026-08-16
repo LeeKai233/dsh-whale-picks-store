@@ -2,7 +2,7 @@
   "schemaVersion": "1.1",
   "id": "dsh-whale-picks-store",
   "name": "dsh-whale-picks-store",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": {
     "zh": "鲸选商店入口：在 DSH 设置侧栏「Agent 预设」下方加入鲸选，浏览套件与精选插件、九轴 ASCII meter 柱状兑现度图、创始人评分与体检结论，一键复制安装命令",
     "en": "The whale-picks store entry: a 鲸选 section right below Agent Presets in DSH settings, browsing suits and curated plugins with nine-axis ASCII meter charts, founder scores and copyable install commands"

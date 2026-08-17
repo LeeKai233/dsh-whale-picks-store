@@ -2,7 +2,7 @@
 
 中文 | [English](README.md)
 
-鲸选商店入口：在 DSH 设置侧栏「Agent 预设」下方加入鲸选区块——浏览套件与精选插件、九轴 ASCII meter 柱状兑现度图、创始人评分与手记、体检结论，一键复制安装命令。纯文本 UI，无 emoji。
+鲸选商店入口：在 DSH 设置侧栏「Agent 预设」下方加入鲸选区块——浏览套件与精选插件、btop 风格九轴米表（CSS 渲染、nord 配色，任意显示器与缩放观感一致）、创始人评分与手记、体检结论，一键复制安装命令。无 emoji；仅鲸鱼品牌 banner 保留 ASCII 艺术。
 
 鲸选合规 DSH 插件——见 [whalepicks.json](./whalepicks.json) 与[鲸选插件规范](https://github.com/LeeKai233/dsh-whale-picks/blob/main/spec/SPEC.md)。
 
@@ -25,7 +25,7 @@ dsh plugin --profile web add file:/path/to/dsh-whale-picks-store
 ## 它做什么
 
 - 把鲸选 registry（套件 + 插件）渲染成货架：编辑精选 / 已收录 / 候选池
-- 已收录插件展示九轴 ASCII meter 柱状兑现度图（范式九目标机器轴，btop 风标题盒与渐变 meter）、创始人评分与手记、体检发现与规范门槛状态
+- 已收录插件展示九轴 btop 风格米表（范式九目标机器轴，CSS 渲染的标题盒与 10 块 nord 渐变 meter，任何 DPI 无字形接缝）、创始人评分与手记、体检发现与规范门槛状态
 - 一键复制确切的安装命令
 
 ## 它不做什么

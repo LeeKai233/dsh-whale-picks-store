@@ -1,12 +1,13 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { WhalePicksSection } from '../src/client/WhalePicksSection.tsx'
-import { BOX_WIDTH } from '../src/client/ascii-bars.ts'
 import { en, zh } from '../src/client/locales.ts'
 import type { StoreKey } from '../src/client/locales.ts'
 import type { Radar, RadarAxis } from '../src/client/store-data.ts'
 
-const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u
+const EMOJI_RE = /[🌀-🫿☀-➿⬀-⯿]/u
+/** Box-drawing + block glyphs: the old glyph-meter surface, now forbidden. */
+const GLYPH_RE = /[─-╿▀-▟]/
 
 const t = (key: StoreKey): string => zh[key]
 
@@ -42,6 +43,17 @@ const registry = {
 }
 const suits = { schemaVersion: '1.0', updatedAt: '2026-08-16', suits: [] }
 
+async function openPluginsTab(): Promise<HTMLElement> {
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+    const body = String(url).includes('suits.json') ? suits : registry
+    return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  }))
+  const { container } = render(<WhalePicksSection t={t} />)
+  fireEvent.click(await screen.findByText(zh.tabPlugins))
+  await screen.findByText('dsh-ui-attention')
+  return container
+}
+
 describe('WhalePicksSection', () => {
   afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
@@ -61,43 +73,45 @@ describe('WhalePicksSection', () => {
     expect(screen.getByText('dsh plugin --profile web add dsh-ui-attention')).toBeTruthy()
   })
 
-  it('shows the meter box, tier badges, founder score meter and notes as pure text', async () => {
-    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
-      const body = String(url).includes('suits.json') ? suits : registry
-      return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    }))
-    const { container } = render(<WhalePicksSection t={t} />)
-    fireEvent.click(await screen.findByText(zh.tabPlugins))
-    expect(await screen.findByText('dsh-ui-attention')).toBeTruthy()
-    // meter box and ASCII whale banner both render as <pre> blocks
-    const pres = container.querySelectorAll('pre')
-    expect(pres.length).toBeGreaterThanOrEqual(2)
-    // titled box: heading, borders, bare meters, null axis as dashes
-    expect(container.textContent).toContain(zh.chartTitle)
-    expect(container.textContent).toContain('╭')
-    expect(container.textContent).toContain('╰')
-    expect(container.textContent).toContain('生产 ' + '█'.repeat(10) + ' 5/5')
-    expect(container.textContent).toContain('救济 ' + '─'.repeat(10) + ' --')
-    // founder meter row outside the box + notes behind the > marker
-    expect(container.textContent).toContain('创始人评分 ' + '█'.repeat(10) + ' 5/5')
-    expect(container.textContent).toContain('> 创始人手记：每天在用。')
-    // ─ separator (one box width) above the founder block
-    expect(container.textContent).toContain('─'.repeat(BOX_WIDTH))
-    // ch width lock: every rendered segment span reserves its model columns
-    const segSpans = container.querySelectorAll('pre div > span')
-    expect(segSpans.length).toBeGreaterThan(0)
-    for (const span of Array.from(segSpans)) {
-      expect((span as HTMLElement).style.width).toMatch(/^\d+ch$/)
-      expect((span as HTMLElement).style.overflow).toBe('hidden')
+  it('renders the CSS meter chart, founder meter and notes — zero glyph art', async () => {
+    const container = await openPluginsTab()
+    // chart box: title, all nine axis labels, scores, and the null axis dash
+    expect(screen.getByText(zh.chartTitle)).toBeTruthy()
+    for (const label of ['生产', '迁移', '准入', '分发', '组合', '安全', '开销', '保鲜', '救济']) {
+      expect(screen.getByText(label)).toBeTruthy()
     }
+    // 5 axes at 5/5 + founder = 6, two 4/5, one 3/5, one null axis '--'
+    expect(screen.getAllByText('5/5')).toHaveLength(6)
+    expect(screen.getAllByText('4/5')).toHaveLength(2)
+    expect(screen.getAllByText('3/5')).toHaveLength(1)
+    expect(screen.getAllByText('--')).toHaveLength(1)
+    // founder meter row outside the box + notes behind the > marker
+    expect(screen.getByText(zh.founderScore)).toBeTruthy()
+    expect(container.textContent).toContain('> 创始人手记：每天在用。')
+    // meters are CSS cells: 10 per scored axis (8) + founder (1) = 90 cells
+    const cells = Array.from(container.querySelectorAll('[data-meter-cell]'))
+    expect(cells).toHaveLength(90)
+    const fills = cells.filter((c) => c.getAttribute('data-meter-cell') === 'fill')
+    const tracks = cells.filter((c) => c.getAttribute('data-meter-cell') === 'track')
+    expect(fills).toHaveLength(82)
+    expect(tracks).toHaveLength(8)
+    // filled cells carry the nord ramp by position (btop), tracks are meter_bg
+    expect((fills[0] as HTMLElement).style.background).toBe('rgb(130, 167, 196)') // y=10
+    expect((fills[9] as HTMLElement).style.background).toBe('rgb(236, 239, 244)') // y=100 = ramp end
+    expect((tracks[0] as HTMLElement).style.background).toBe('rgb(76, 86, 106)') // #4C566A
+    // the whale brand banner remains the only <pre> ASCII art
+    const pres = container.querySelectorAll('pre')
+    expect(pres.length).toBe(1)
+    expect(pres[0].textContent).toContain('~^~^~')
+    // no box-drawing / block glyphs anywhere: rendering is pure CSS now
+    expect(GLYPH_RE.test(container.textContent ?? '')).toBe(false)
     // text badges and stars copy replaced the old emoji
     expect(screen.getByText(zh.featured).textContent).toContain('[FEATURED]')
     expect(screen.getByText(/stars 1/)).toBeTruthy()
-    // no emoji anywhere in the rendered section (box-drawing glyphs are not emoji)
     expect(EMOJI_RE.test(container.textContent ?? '')).toBe(false)
   })
 
-  it('follows the active locale for founder notes', async () => {
+  it('follows the active locale for chart, founder row and notes', async () => {
     vi.stubGlobal('fetch', vi.fn(async (url: string) => {
       const body = String(url).includes('suits.json') ? suits : registry
       return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })
@@ -106,10 +120,11 @@ describe('WhalePicksSection', () => {
     const { container } = render(<WhalePicksSection t={tEn} />)
     fireEvent.click(await screen.findByText(en.tabPlugins))
     expect(await screen.findByText('dsh-ui-attention')).toBeTruthy()
-    expect(container.textContent).toContain(en.chartTitle)
-    expect(container.textContent).toContain('Founder score ' + '█'.repeat(10) + ' 5/5')
+    expect(screen.getByText(en.chartTitle)).toBeTruthy()
+    expect(screen.getByText('Founder score')).toBeTruthy()
     expect(container.textContent).toContain('> Founder note: daily driver.')
     expect(screen.getByText(en.featured).textContent).toContain('[FEATURED]')
+    expect(GLYPH_RE.test(container.textContent ?? '')).toBe(false)
   })
 
   it('shows the visible error state instead of a blank shelf', async () => {

@@ -1,7 +1,7 @@
 {
   "name": "dsh-whale-picks-store",
-  "version": "0.2.2",
-  "description": "鲸选商店插件：DSH 设置中「Agent 预设」下方的鲸选入口——套件与插件货架、九轴 ASCII meter 柱状兑现度图、创始人评分、一键复制安装命令",
+  "version": "0.3.0",
+  "description": "鲸选商店插件：DSH 设置中「Agent 预设」下方的鲸选入口——套件与插件货架、btop 风格九轴米表（CSS 渲染、nord 配色，任意显示器与缩放观感一致）、创始人评分、一键复制安装命令",
   "keywords": [
     "dsh",
     "deepseek-harness",
@@ -36,7 +36,8 @@
     "bundle": "tsdown",
     "watch": "tsdown --watch",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "pnpm test && pnpm bundle"
   },
   "license": "MIT",
   "peerDependencies": {

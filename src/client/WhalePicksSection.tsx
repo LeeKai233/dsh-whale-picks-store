@@ -1,9 +1,9 @@
 /**
  * The whale-picks settings section: the store shelves inside DSH.
  * Two tabs — suits and plugins (featured / listed / candidates) — with a
- * nine-axis ASCII meter chart in a titled box (btop flavor), founder score
- * meter and notes, pass findings, gate status and copyable install commands.
- * Pure text UI, no emoji.
+ * nine-axis btop-style meter chart (CSS-rendered: identical at every DPR),
+ * founder score meter and notes, pass findings, gate status and copyable
+ * install commands. No emoji; the only ASCII art is the whale brand banner.
  * Read-only: installation stays `dsh plugin add` (see whalepicks.json scope).
  */
 import { Component, useCallback, useEffect, useState } from 'react'
@@ -11,8 +11,8 @@ import type { ReactNode } from 'react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { fetchStoreData } from './store-data.ts'
 import type { PluginEntry, Registry, Suit, SuitsRegistry } from './store-data.ts'
-import { barsModel, BOX_WIDTH, meterRow, titledBox } from './ascii-bars.ts'
-import type { BarsModel, BarsSegment } from './ascii-bars.ts'
+import { FounderMeter, MONO_STACK, RadarChart, TitledBox } from './MeterUi.tsx'
+import { NORD } from './meter-core.ts'
 import { AXIS_LABEL_KEYS } from './locales.ts'
 import type { StoreKey } from './locales.ts'
 
@@ -22,7 +22,7 @@ type T = (key: StoreKey) => string
 const TIER_ORDER: PluginEntry['tier'][] = ['featured', 'listed', 'candidate']
 const TIER_KEY = { featured: 'featured', listed: 'listed', candidate: 'candidates' } as const
 
-/** Classic ASCII whale — the terminal-style brand banner, framed by titledBox. */
+/** Classic ASCII whale — the brand banner (punctuation art), framed by a CSS hairline titled box. */
 const WHALE_ART = [
   '      .',
   '     ":"',
@@ -32,14 +32,11 @@ const WHALE_ART = [
   '~^~^~^~^~^~^~^~^~^~^~^~^~',
 ]
 
-// Meter/box glyphs only align in a CJK-aware monospace at lineHeight 1.
-const MONO_STACK = '"Noto Sans Mono CJK SC","Sarasa Mono SC","Noto Sans Mono",monospace'
-
 const styles: Record<string, React.CSSProperties> = {
   root: { display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0' },
   header: { display: 'flex', flexDirection: 'column', gap: 2 },
   brandRow: { display: 'flex', alignItems: 'center', gap: 8 },
-  banner: { margin: 0, fontFamily: MONO_STACK, fontSize: 10, lineHeight: 1, color: 'inherit', opacity: 0.9 },
+  banner: { margin: 0, fontFamily: MONO_STACK, fontSize: 10, lineHeight: 1, color: NORD.text, opacity: 0.9 },
   subtitle: { fontSize: 12, opacity: 0.7 },
   tabs: { display: 'flex', gap: 8 },
   tab: { padding: '6px 12px', borderRadius: 6, border: '1px solid var(--dsw-alias-border, #333c4f)', background: 'transparent', color: 'inherit', cursor: 'pointer', fontSize: 13 },
@@ -52,13 +49,7 @@ const styles: Record<string, React.CSSProperties> = {
   meta: { fontSize: 11, opacity: 0.65, whiteSpace: 'nowrap' },
   desc: { fontSize: 12.5, opacity: 0.9, lineHeight: 1.5 },
   chartRow: { display: 'flex', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap' },
-  monoPre: { flexShrink: 0, margin: 0, fontFamily: MONO_STACK, fontSize: 11, lineHeight: 1, color: 'inherit', overflowX: 'auto' },
-  flexRow: { display: 'flex' },
-  // ch width lock: the browser reserves exactly <cols>ch per segment, so
-  // fallback-font metric drift stays inside the span and never pushes boxes.
-  seg: { flex: 'none', overflow: 'hidden' },
-  track: { opacity: 0.35 },
-  rule: { margin: 0, fontFamily: MONO_STACK, fontSize: 11, lineHeight: 1, opacity: 0.5, whiteSpace: 'pre', overflow: 'hidden', width: BOX_WIDTH + 'ch' },
+  founderRule: { borderTop: '1px solid ' + NORD.border },
   side: { display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11, opacity: 0.8 },
   warn: { color: '#FFB900' },
   founder: { display: 'flex', flexDirection: 'column', gap: 4 },
@@ -69,31 +60,6 @@ const styles: Record<string, React.CSSProperties> = {
   empty: { fontSize: 12.5, opacity: 0.7, lineHeight: 1.6 },
   error: { fontSize: 12.5, color: '#ff7a7a', display: 'flex', alignItems: 'center', gap: 8 },
   footer: { fontSize: 10.5, opacity: 0.5 },
-}
-
-/** Segment renderer: gradient fills get their meter color, tracks stay muted. */
-function Segments({ segs }: { segs: BarsSegment[] }): JSX.Element {
-  return (
-    <>
-      {segs.map((s, i) => {
-        const style: React.CSSProperties = s.kind === 'fill'
-          ? { ...styles.seg, color: s.color, width: s.cols + 'ch' }
-          : s.kind === 'track'
-            ? { ...styles.seg, ...styles.track, width: s.cols + 'ch' }
-            : { ...styles.seg, width: s.cols + 'ch' }
-        return <span key={i} style={style}>{s.text}</span>
-      })}
-    </>
-  )
-}
-
-/** Segment-grid view: one locked flex row per model row. */
-function ModelView({ model, style, ariaHidden }: { model: BarsModel; style?: React.CSSProperties; ariaHidden?: boolean }): JSX.Element {
-  return (
-    <pre style={style ?? styles.monoPre} aria-hidden={ariaHidden ? 'true' : undefined}>
-      {model.rows.map((row, i) => <div key={i} style={styles.flexRow}><Segments segs={row} /></div>)}
-    </pre>
-  )
 }
 
 function copyText(text: string): boolean {
@@ -116,7 +82,7 @@ function PluginCard({ p, t }: { p: PluginEntry; t: T }): JSX.Element {
   const lang = t('lang') === 'en' ? 'en' : 'zh'
   const desc = (p.description?.zh || p.description?.en || '').slice(0, 220)
   const flags = p.security?.redFlags ?? []
-  const chart = barsModel(p.radar, AXIS_LABEL_KEYS.map((k) => t(k)), t('chartTitle'))
+  const chart = <RadarChart radar={p.radar} labels={AXIS_LABEL_KEYS.map((k) => t(k))} title={t('chartTitle')} />
   const human = p.radar?.human ?? null
   const notes = p.reviewNotes ? (p.reviewNotes[lang] || p.reviewNotes.zh || p.reviewNotes.en) : ''
   const gate = p.manifestCompliant === true ? t('gatePass') : t('gateFail')
@@ -128,7 +94,7 @@ function PluginCard({ p, t }: { p: PluginEntry; t: T }): JSX.Element {
       </div>
       <div style={styles.desc}>{desc}</div>
       <div style={styles.chartRow}>
-        {chart ? <ModelView model={chart} /> : null}
+        {chart}
         <div style={styles.side}>
           {flags.length ? <div style={styles.warn}>[!] {flags.length} {t('flags')}</div> : null}
           {p.tier === 'candidate' ? <div>{t('candidates')}</div> : null}
@@ -136,8 +102,8 @@ function PluginCard({ p, t }: { p: PluginEntry; t: T }): JSX.Element {
       </div>
       {human && human.value != null ? (
         <div style={styles.founder}>
-          <div style={styles.rule} aria-hidden="true">{'─'.repeat(BOX_WIDTH)}</div>
-          <ModelView model={{ rows: [meterRow(t('founderScore'), human.value)] }} />
+          <div style={styles.founderRule} aria-hidden="true" />
+          <FounderMeter label={t('founderScore')} value={human.value} />
           {notes ? <div style={styles.notes}>{'> '}{notes}</div> : null}
         </div>
       ) : null}
@@ -230,7 +196,9 @@ function WhalePicksBody({ t }: { t: T }): JSX.Element {
     <div style={styles.root}>
       <div style={styles.header}>
         <div style={styles.brandRow}>
-          <ModelView model={titledBox(WHALE_ART, t('bannerTitle'))} style={styles.banner} ariaHidden />
+          <TitledBox title={t('bannerTitle')} style={{ margin: 0 }}>
+            <pre style={styles.banner} aria-hidden="true">{WHALE_ART.join('\n')}</pre>
+          </TitledBox>
           <div style={styles.subtitle}>{t('subtitle')}</div>
         </div>
         <div style={styles.tabs}>

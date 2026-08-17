@@ -41,9 +41,9 @@ export interface StoreKey {
 
 /**
  * Legend label keys in meter-chart order — index i is the label of
- * AXIS_KEYS[i] (ascii-bars.ts). The order contract is locked by a test.
- * Labels must stay within 4 display columns (zh: two characters; en: four
- * letters) or the two-column box breaks — also locked by a test.
+ * AXIS_KEYS[i] (meter-core.ts). The order contract is locked by a test.
+ * Labels must stay short (<= 6 characters, locked by a test) so the
+ * two-column grid keeps its fixed label column width.
  */
 export const AXIS_LABEL_KEYS = [
   'axisProducibility', 'axisAdoptability', 'axisBaseline', 'axisDistribution',
